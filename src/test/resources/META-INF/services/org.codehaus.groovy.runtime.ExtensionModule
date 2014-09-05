@@ -1,0 +1,3 @@
+moduleName=macro-module
+moduleVersion=1.0
+extensionClasses=ru.trylogic.groovy.macro.transform.TestMacroMethods
