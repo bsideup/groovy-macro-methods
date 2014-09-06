@@ -56,6 +56,15 @@ public class MacroTransformation extends MethodCallTransformation implements Com
 
         @Override
         public Expression transform(final Expression exp) {
+            if(exp instanceof ClosureExpression) {
+                ClosureExpression closureExpression = (ClosureExpression) exp;
+
+                // This is so bad, but ClosureExpression::transformExpression doesn't provide closure transformation:(
+                closureExpression.getCode().visit(this);
+                
+                return super.transform(exp);
+            }
+            
             if(!(exp instanceof MethodCallExpression)) {
                 return super.transform(exp);
             }
