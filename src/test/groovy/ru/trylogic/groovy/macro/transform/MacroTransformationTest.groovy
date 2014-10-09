@@ -32,4 +32,24 @@ class MacroTransformationTest extends GroovyTestCase {
 
 """
     }
+    
+    void testMethodName() {
+        assertScript """
+            
+        assert "toString" == methodName(123.toString())
+        
+        assert "getInteger" == methodName(Integer.getInteger())
+        
+        assert "call" == methodName({}())
+"""
+    }
+    
+    void testPropertyName() {
+        assertScript """
+        
+        assert "bytes" == propertyName("".bytes)
+        
+        assert "class" == propertyName(123.class)
+"""
+    }
 }
