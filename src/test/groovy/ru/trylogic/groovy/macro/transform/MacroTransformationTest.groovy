@@ -41,6 +41,8 @@ class MacroTransformationTest extends GroovyTestCase {
         assert "getInteger" == methodName(Integer.getInteger())
         
         assert "call" == methodName({}())
+        
+        assert "after" == methodName((new Date()).&after);
 """
     }
     
