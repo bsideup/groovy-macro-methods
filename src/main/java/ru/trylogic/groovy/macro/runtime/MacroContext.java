@@ -1,4 +1,4 @@
-package ru.trylogic.groovy.macro.transform;
+package ru.trylogic.groovy.macro.runtime;
 
 import org.codehaus.groovy.ast.expr.MethodCallExpression;
 import org.codehaus.groovy.control.CompilationUnit;

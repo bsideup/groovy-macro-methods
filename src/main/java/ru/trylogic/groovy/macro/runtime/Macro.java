@@ -1,4 +1,4 @@
-package ru.trylogic.groovy.macro.transform;
+package ru.trylogic.groovy.macro.runtime;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;

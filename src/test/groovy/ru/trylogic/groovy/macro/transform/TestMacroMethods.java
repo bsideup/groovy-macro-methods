@@ -1,6 +1,8 @@
 package ru.trylogic.groovy.macro.transform;
 
 import org.codehaus.groovy.ast.expr.*;
+import ru.trylogic.groovy.macro.runtime.Macro;
+import ru.trylogic.groovy.macro.runtime.MacroContext;
 
 import static org.codehaus.groovy.ast.tools.GeneralUtils.*;
 
