@@ -20,10 +20,21 @@ apply plugin: 'com.jfrog.bintray'
 group = 'ru.trylogic.groovy.macro'
 version = '0.2.0'
 
+configurations {
+    provided
+}
+
+sourceSets {
+    main {
+        compileClasspath += configurations.provided
+    }
+}
+
 dependencies {
+    provided 'org.codehaus.groovy:groovy-all:2.3.6'
+
     compile 'org.codehaus.groovy:groovy-all:2.3.6'
     testCompile 'junit:junit:4.11'
-    
     testCompile 'org.gperfutils:gbench:0.4.2-groovy-2.1'
 }
 
