@@ -23,6 +23,8 @@ version = '0.2.0'
 dependencies {
     compile 'org.codehaus.groovy:groovy-all:2.3.6'
     testCompile 'junit:junit:4.11'
+    
+    testCompile 'org.gperfutils:gbench:0.4.2-groovy-2.1'
 }
 
 def pomConfig = {

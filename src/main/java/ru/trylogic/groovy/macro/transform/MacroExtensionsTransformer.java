@@ -1,10 +1,6 @@
 package ru.trylogic.groovy.macro.transform;
 
-import groovy.lang.GroovyShell;
-import org.codehaus.groovy.ast.ClassCodeVisitorSupport;
-import org.codehaus.groovy.ast.ClassHelper;
-import org.codehaus.groovy.ast.ClassNode;
-import org.codehaus.groovy.ast.MethodNode;
+import org.codehaus.groovy.ast.*;
 import org.codehaus.groovy.ast.expr.*;
 import org.codehaus.groovy.classgen.asm.InvocationWriter;
 import org.codehaus.groovy.control.CompilationUnit;
@@ -12,12 +8,10 @@ import org.codehaus.groovy.control.SourceUnit;
 import org.codehaus.groovy.runtime.InvokerHelper;
 import org.codehaus.groovy.transform.stc.ExtensionMethodNode;
 import org.codehaus.groovy.transform.stc.StaticTypeCheckingSupport;
-import ru.trylogic.groovy.macro.runtime.Macro;
 import ru.trylogic.groovy.macro.runtime.MacroContext;
 import ru.trylogic.groovy.macro.runtime.MacroStub;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 
 /**
  * TODO validation
@@ -27,24 +21,25 @@ import java.util.List;
  */
 public class MacroExtensionsTransformer extends ClassCodeVisitorSupport {
 
-    public static final ClassNode MACRO_ANNOTATION_CLASS_NODE = ClassHelper.make(Macro.class);
-
     public static final ClassNode MACRO_CONTEXT_CLASS_NODE = ClassHelper.make(MacroContext.class);
 
     public static final ClassNode MACRO_STUB_CLASS_NODE = ClassHelper.make(MacroStub.class);
 
     public static final PropertyExpression MACRO_STUB_INSTANCE = new PropertyExpression(new ClassExpression(MACRO_STUB_CLASS_NODE), "INSTANCE");
+    
+    public static final String MACRO_STUB_METHOD_NAME = "macroMethod";
 
     protected final CompilationUnit unit;
 
     protected final SourceUnit sourceUnit;
 
-    protected final GroovyShell shell;
+    protected final Map<String, List<MethodNode>> macroMethodsByName;
 
     public MacroExtensionsTransformer(CompilationUnit unit, SourceUnit sourceUnit) {
         this.unit = unit;
         this.sourceUnit = sourceUnit;
-        shell = new GroovyShell(unit.getTransformLoader());
+
+        this.macroMethodsByName = MacroMethodsCache.getMacroMethodsByNameMap(unit.getTransformLoader());
     }
 
     @Override
@@ -63,20 +58,25 @@ public class MacroExtensionsTransformer extends ClassCodeVisitorSupport {
         for (int i = 0; i < callArguments.size(); i++) {
             argumentsList[i] = ClassHelper.make(callArguments.get(i).getClass());
         }
-
+        
         String methodName = call.getMethodAsString();
-        List<MethodNode> dgmMethods = StaticTypeCheckingSupport.findDGMMethodsByNameAndArguments(
-                unit.getTransformLoader(), MACRO_CONTEXT_CLASS_NODE, methodName,
-                argumentsList);
+        
+        List<MethodNode> methods = macroMethodsByName.get(methodName);
+        
+        if(methods == null) {
+            return;
+        }
 
-        for (MethodNode dgmMethod : dgmMethods) {
-            ExtensionMethodNode extensionMethodNode = (ExtensionMethodNode) dgmMethod;
-
-            MethodNode macroMethodNode = extensionMethodNode.getExtensionMethodNode();
-
-            if (macroMethodNode.getAnnotations(MACRO_ANNOTATION_CLASS_NODE).isEmpty()) {
+        methods = StaticTypeCheckingSupport.chooseBestMethod(MACRO_CONTEXT_CLASS_NODE, methods, argumentsList);
+        
+        for (MethodNode macroMethodNode : methods) {
+            if(!(macroMethodNode instanceof ExtensionMethodNode)) {
                 continue;
             }
+            
+            ExtensionMethodNode extensionMethodNode = (ExtensionMethodNode) macroMethodNode;
+
+            MethodNode macroExtensionMethodNode = extensionMethodNode.getExtensionMethodNode();
 
             MacroContext macroContext = new MacroContext(unit, sourceUnit, call);
 
@@ -84,11 +84,18 @@ public class MacroExtensionsTransformer extends ClassCodeVisitorSupport {
             macroArguments.add(macroContext);
             macroArguments.addAll(callArguments);
 
-            Object clazz = shell.evaluate(macroMethodNode.getDeclaringClass().getName());
-            Expression result = (Expression) InvokerHelper.invokeMethod(clazz, methodName, macroArguments.toArray());
+            final Class clazz;
+            try {
+                clazz = unit.getClassLoader().loadClass(macroExtensionMethodNode.getDeclaringClass().getName());
+            } catch (ClassNotFoundException e) {
+                //TODO different reaction?
+                continue;
+            }
+            
+            Expression result = (Expression) InvokerHelper.invokeStaticMethod(clazz, methodName, macroArguments.toArray());
 
             call.setObjectExpression(MACRO_STUB_INSTANCE);
-            call.setMethod(new ConstantExpression("macroMethod"));
+            call.setMethod(new ConstantExpression(MACRO_STUB_METHOD_NAME));
 
             call.setSpreadSafe(false);
             call.setSafe(false);
